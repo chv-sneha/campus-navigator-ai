@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
   Home,
+  LayoutDashboard,
   Film,
   Clock,
   FileText,
@@ -9,11 +10,11 @@ import {
   User,
   LogOut,
   GraduationCap,
-  Menu,
 } from "lucide-react";
 
 const navItems = [
-  { label: "Dashboard", icon: Home, path: "/dashboard" },
+  { label: "Home", icon: Home, path: "/home" },
+  { label: "Dashboard", icon: LayoutDashboard, path: "/dashboard" },
   { label: "Reels", icon: Film, path: "/reels" },
   { label: "Deadlines & Goals", icon: Clock, path: "/deadlines" },
   { label: "Documents", icon: FileText, path: "/documents" },
