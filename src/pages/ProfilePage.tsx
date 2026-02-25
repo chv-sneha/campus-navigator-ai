@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 
@@ -12,6 +13,8 @@ const ProfilePage = () => {
   const [morningBriefing, setMorningBriefing] = useState(true);
   const [deadlineReminder, setDeadlineReminder] = useState(true);
   const [reminderDays, setReminderDays] = useState([3]);
+  const [language, setLanguage] = useState("English");
+  const [useLanguageInContent, setUseLanguageInContent] = useState(false);
   const [editing, setEditing] = useState(false);
   const [profile, setProfile] = useState({
     name: "Arjun Kumar",
@@ -90,6 +93,38 @@ const ProfilePage = () => {
                   <Slider value={reminderDays} onValueChange={setReminderDays} min={1} max={7} step={1} className="w-full" />
                 </div>
               )}
+            </div>
+          </div>
+
+          {/* Language Preferences */}
+          <div className="glass-card p-5">
+            <h3 className="font-display text-sm font-bold text-foreground mb-4">Content & Interface Language</h3>
+            <div className="space-y-4">
+              <div>
+                <p className="text-sm font-medium text-foreground mb-2">Preferred Language</p>
+                <Select value={language} onValueChange={setLanguage}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="English">English</SelectItem>
+                    <SelectItem value="Hindi">Hindi</SelectItem>
+                    <SelectItem value="Telugu">Telugu</SelectItem>
+                    <SelectItem value="Tamil">Tamil</SelectItem>
+                    <SelectItem value="Kannada">Kannada</SelectItem>
+                    <SelectItem value="Bengali">Bengali</SelectItem>
+                    <SelectItem value="Marathi">Marathi</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-foreground">Use selected language in Reels and Chatbot</p>
+                  <p className="text-xs text-muted-foreground">Apply language preference to content</p>
+                </div>
+                <Switch checked={useLanguageInContent} onCheckedChange={setUseLanguageInContent} />
+              </div>
+              <Button className="w-full" onClick={() => toast({ title: "Language preferences saved ✅" })}>Save Preferences</Button>
             </div>
           </div>
 

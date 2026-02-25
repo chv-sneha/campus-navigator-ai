@@ -47,6 +47,7 @@ const DeadlinesGoals = () => {
   const [newDate, setNewDate] = useState("");
   const [newDesc, setNewDesc] = useState("");
   const [newGoal, setNewGoal] = useState("");
+  const [activeTab, setActiveTab] = useState<"deadlines" | "goals">("deadlines");
   const { toast } = useToast();
 
   const addDeadline = () => {
@@ -78,9 +79,29 @@ const DeadlinesGoals = () => {
         <p className="text-sm text-muted-foreground mt-1">Stay on track with assignments and personal targets</p>
       </div>
 
+      {/* Mobile Tabs */}
+      <div className="flex gap-3 mb-6 lg:hidden">
+        <button
+          onClick={() => setActiveTab("deadlines")}
+          className={`flex-1 py-3 px-4 rounded-xl font-medium text-sm transition-all ${
+            activeTab === "deadlines" ? "bg-white text-foreground shadow-sm" : "bg-secondary/50 text-muted-foreground"
+          }`}
+        >
+          Deadlines
+        </button>
+        <button
+          onClick={() => setActiveTab("goals")}
+          className={`flex-1 py-3 px-4 rounded-xl font-medium text-sm transition-all ${
+            activeTab === "goals" ? "bg-white text-foreground shadow-sm" : "bg-secondary/50 text-muted-foreground"
+          }`}
+        >
+          Daily Goals
+        </button>
+      </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Deadlines */}
-        <div className="space-y-4">
+        <div className={`space-y-4 ${activeTab === "deadlines" ? "block" : "hidden"} lg:block`}>
           <div className="glass-card p-5">
             <h3 className="font-display text-sm font-bold text-foreground mb-4">Add Deadline</h3>
             <div className="space-y-3">
@@ -115,7 +136,7 @@ const DeadlinesGoals = () => {
         </div>
 
         {/* Goals */}
-        <div className="space-y-4">
+        <div className={`space-y-4 ${activeTab === "goals" ? "block" : "hidden"} lg:block`}>
           <div className="glass-card p-5">
             <h3 className="font-display text-sm font-bold text-foreground mb-4">Add Goal</h3>
             <div className="flex gap-2">
