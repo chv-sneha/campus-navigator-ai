@@ -3,13 +3,43 @@ import { GraduationCap, Sparkles, BookOpen, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import loginHero from "@/assets/login-hero.jpg";
+import { signInWithPopup, signInWithEmailAndPassword } from "firebase/auth";
+import { auth, googleProvider } from "@/lib/firebase";
+import { useState } from "react";
+import { useToast } from "@/hooks/use-toast";
 
 const LoginPage = () => {
   const navigate = useNavigate();
+  const { toast } = useToast();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleGoogleSignIn = async () => {
+    setLoading(true);
+    try {
+      await signInWithPopup(auth, googleProvider);
+      toast({ title: "Success", description: "Signed in with Google" });
+      navigate("/home");
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    navigate("/home");
+    setLoading(true);
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
+      toast({ title: "Success", description: "Signed in successfully" });
+      navigate("/home");
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -67,7 +97,8 @@ const LoginPage = () => {
           <Button
             variant="outline"
             className="w-full mb-6 h-11 font-medium"
-            onClick={() => navigate("/home")}
+            onClick={handleGoogleSignIn}
+            disabled={loading}
           >
             <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
               <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/>
@@ -84,15 +115,15 @@ const LoginPage = () => {
           </div>
 
           <form onSubmit={handleLogin} className="space-y-4">
-            <Input type="email" placeholder="Email address" className="h-11" defaultValue="arjun@university.edu" />
-            <Input type="password" placeholder="Password" className="h-11" defaultValue="password123" />
-            <Button type="submit" className="w-full h-11 font-semibold">
+            <Input type="email" placeholder="Email address" className="h-11" value={email} onChange={(e) => setEmail(e.target.value)} required />
+            <Input type="password" placeholder="Password" className="h-11" value={password} onChange={(e) => setPassword(e.target.value)} required />
+            <Button type="submit" className="w-full h-11 font-semibold" disabled={loading}>
               Sign In
             </Button>
           </form>
 
           <p className="text-center text-xs text-muted-foreground mt-6">
-            Don't have an account? <span className="text-primary cursor-pointer font-medium">Sign up</span>
+            Don't have an account? <span className="text-primary cursor-pointer font-medium" onClick={() => navigate("/signup")}>Sign up</span>
           </p>
         </div>
       </div>

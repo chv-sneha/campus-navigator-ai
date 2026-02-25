@@ -116,7 +116,7 @@ const TimetablePage = () => {
         </div>
 
         {/* Today's Schedule */}
-        <div className="xl:col-span-1">
+        <div className="xl:col-span-1 space-y-4">
           <div className="glass-card p-5">
             <h3 className="font-display text-sm font-bold text-foreground mb-4 flex items-center gap-2">
               <Clock className="w-4 h-4 text-primary" /> Today's Schedule
@@ -134,6 +134,23 @@ const TimetablePage = () => {
                   </div>
                 ))
               )}
+            </div>
+          </div>
+
+          {/* Suggested Study Slots */}
+          <div className="glass-card p-5 bg-blue-50/50">
+            <h3 className="font-display text-sm font-bold text-foreground mb-4 flex items-center gap-2">
+              📖 Suggested Study Slots
+            </h3>
+            <div className="space-y-3">
+              <div className="p-3 bg-white rounded-lg border border-blue-200">
+                <p className="text-xs font-medium text-foreground">2:00 PM — 3:00 PM: Free</p>
+                <p className="text-xs text-muted-foreground mt-1">Consider revising Data Structures (due tomorrow)</p>
+              </div>
+              <div className="p-3 bg-white rounded-lg border border-blue-200">
+                <p className="text-xs font-medium text-foreground">4:00 PM — 5:00 PM: Free</p>
+                <p className="text-xs text-muted-foreground mt-1">Work on OS assignment (1d remaining)</p>
+              </div>
             </div>
           </div>
         </div>
