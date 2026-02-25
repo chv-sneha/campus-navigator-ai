@@ -1,8 +1,12 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import Layout from "@/components/Layout";
-import { Upload, Clock } from "lucide-react";
+import { Upload, Clock, Loader2, Camera } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { useAuthState } from "react-firebase-hooks/auth";
+import { auth, db } from "@/lib/firebase";
+import { doc, getDoc, setDoc } from "firebase/firestore";
 
 const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 const periods = ["9:00 AM", "10:00 AM", "11:00 AM", "12:00 PM", "1:00 PM", "2:00 PM", "3:00 PM", "4:00 PM"];
@@ -30,9 +34,74 @@ const initialTimetable: string[][] = [
 ];
 
 const TimetablePage = () => {
+  const [user] = useAuthState(auth);
   const [timetable, setTimetable] = useState(initialTimetable);
   const [editCell, setEditCell] = useState<{ day: number; period: number } | null>(null);
+  const [parsing, setParsing] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+
+  useEffect(() => {
+    if (!user) return;
+    const loadTimetable = async () => {
+      const timetableDoc = await getDoc(doc(db, `users/${user.uid}/timetable`));
+      if (timetableDoc.exists()) {
+        setTimetable(timetableDoc.data().grid);
+      }
+    };
+    loadTimetable();
+  }, [user]);
+
+  const saveTimetable = async () => {
+    if (!user) return;
+    await setDoc(doc(db, `users/${user.uid}/timetable`), { grid: timetable });
+    toast({ title: "Timetable saved ✅" });
+  };
+
+  const parseImage = async (file: File) => {
+    setParsing(true);
+    try {
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => resolve(e.target?.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+
+      const base64Data = base64.split(',')[1];
+      const mediaType = file.type;
+
+      const response = await fetch('http://localhost:3001/api/parse-timetable', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ imageBase64: base64Data, mediaType })
+      });
+
+      const data = await response.json();
+      if (data.content) {
+        const jsonMatch = data.content.match(/\[\[.*\]\]/s);
+        if (jsonMatch) {
+          const parsed = JSON.parse(jsonMatch[0]);
+          setTimetable(parsed);
+          toast({ title: "Timetable parsed successfully! ✅ Review and save." });
+        } else {
+          throw new Error('No JSON found');
+        }
+      } else {
+        throw new Error(data.error || 'No content');
+      }
+    } catch (error) {
+      toast({ title: "Could not parse timetable. Please fill manually.", variant: "destructive" });
+    } finally {
+      setParsing(false);
+    }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) parseImage(file);
+  };
 
   const updateCell = (day: number, period: number, value: string) => {
     const updated = timetable.map((row, d) =>
@@ -53,12 +122,29 @@ const TimetablePage = () => {
       </div>
 
       {/* Upload Area */}
-      <div className="glass-card p-6 mb-6 border-2 border-dashed border-border text-center cursor-pointer hover:border-primary/50 transition-colors"
-        onClick={() => toast({ title: "Upload feature coming soon! 📸" })}
-      >
-        <Upload className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
-        <p className="text-sm font-medium text-foreground">Upload timetable image</p>
-        <p className="text-xs text-muted-foreground">Drag & drop or click to browse — AI will auto-fill the grid</p>
+      <div className="glass-card p-6 mb-6 border-2 border-dashed border-border text-center">
+        {parsing ? (
+          <div className="flex flex-col items-center gap-2">
+            <Loader2 className="w-8 h-8 animate-spin text-primary" />
+            <p className="text-sm font-medium text-foreground">🤖 AI is reading your timetable...</p>
+          </div>
+        ) : (
+          <>
+            <Upload className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
+            <p className="text-sm font-medium text-foreground mb-3">Upload timetable image</p>
+            <div className="flex gap-2 justify-center">
+              <Button variant="outline" onClick={() => fileInputRef.current?.click()}>
+                📁 Choose File
+              </Button>
+              <Button variant="outline" onClick={() => cameraInputRef.current?.click()}>
+                📷 Use Camera
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground mt-2">AI will auto-fill the grid</p>
+            <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
+            <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleFileChange} />
+          </>
+        )}
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
@@ -113,6 +199,9 @@ const TimetablePage = () => {
               ))}
             </tbody>
           </table>
+          <div className="p-4 border-t border-border">
+            <Button className="w-full" onClick={saveTimetable}>Save Timetable</Button>
+          </div>
         </div>
 
         {/* Today's Schedule */}
