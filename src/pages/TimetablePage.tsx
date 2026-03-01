@@ -79,19 +79,41 @@ const TimetablePage = () => {
       });
 
       const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error || 'Server error');
+      }
+      
       if (data.content) {
-        const jsonMatch = data.content.match(/\[\[.*\]\]/s);
-        if (jsonMatch) {
-          const parsed = JSON.parse(jsonMatch[0]);
+        let parsed;
+        const content = data.content.trim();
+        
+        // Try to extract JSON from markdown code blocks
+        const codeBlockMatch = content.match(/```(?:json)?\s*([\s\S]*?)```/);
+        if (codeBlockMatch) {
+          parsed = JSON.parse(codeBlockMatch[1].trim());
+        } else {
+          // Try to find JSON array directly
+          const jsonMatch = content.match(/\[\[[\s\S]*?\]\]/);
+          if (jsonMatch) {
+            parsed = JSON.parse(jsonMatch[0]);
+          } else {
+            // Try parsing the entire content
+            parsed = JSON.parse(content);
+          }
+        }
+        
+        if (Array.isArray(parsed) && parsed.length === 6) {
           setTimetable(parsed);
           toast({ title: "Timetable parsed successfully! ✅ Review and save." });
         } else {
-          throw new Error('No JSON found');
+          throw new Error('Invalid timetable format');
         }
       } else {
-        throw new Error(data.error || 'No content');
+        throw new Error('No content received');
       }
     } catch (error) {
+      console.error('Parse error:', error);
       toast({ title: "Could not parse timetable. Please fill manually.", variant: "destructive" });
     } finally {
       setParsing(false);
