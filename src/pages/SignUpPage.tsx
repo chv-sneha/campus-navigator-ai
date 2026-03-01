@@ -2,7 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { GraduationCap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { signInWithPopup, createUserWithEmailAndPassword } from "firebase/auth";
+import { signInWithPopup, createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
 import { auth, googleProvider } from "@/lib/firebase";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
@@ -12,6 +12,7 @@ const SignUpPage = () => {
   const { toast } = useToast();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [name, setName] = useState("");
   const [loading, setLoading] = useState(false);
 
   const handleGoogleSignIn = async () => {
@@ -19,7 +20,7 @@ const SignUpPage = () => {
     try {
       await signInWithPopup(auth, googleProvider);
       toast({ title: "Success", description: "Signed up with Google" });
-      navigate("/home");
+      navigate("/onboarding");
     } catch (error: any) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     } finally {
@@ -31,9 +32,12 @@ const SignUpPage = () => {
     e.preventDefault();
     setLoading(true);
     try {
-      await createUserWithEmailAndPassword(auth, email, password);
+      const result = await createUserWithEmailAndPassword(auth, email, password);
+      if (name) {
+        await updateProfile(result.user, { displayName: name });
+      }
       toast({ title: "Success", description: "Account created successfully" });
-      navigate("/home");
+      navigate("/onboarding");
     } catch (error: any) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     } finally {
@@ -75,6 +79,7 @@ const SignUpPage = () => {
         </div>
 
         <form onSubmit={handleSignUp} className="space-y-4">
+          <Input type="text" placeholder="Full Name" className="h-11" value={name} onChange={(e) => setName(e.target.value)} required />
           <Input type="email" placeholder="Email address" className="h-11" value={email} onChange={(e) => setEmail(e.target.value)} required />
           <Input type="password" placeholder="Password (min 6 characters)" className="h-11" value={password} onChange={(e) => setPassword(e.target.value)} required />
           <Button type="submit" className="w-full h-11 font-semibold" disabled={loading}>

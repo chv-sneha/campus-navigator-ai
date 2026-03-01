@@ -1,6 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import FloatingChatbot from "./FloatingChatbot";
+import { auth, db } from "@/lib/firebase";
+import { useAuthState } from "react-firebase-hooks/auth";
+import { doc, getDoc } from "firebase/firestore";
+import { signOut } from "firebase/auth";
 import {
   Home,
   LayoutDashboard,
@@ -33,8 +37,29 @@ const Layout = ({ children }: LayoutProps) => {
   const navigate = useNavigate();
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [user] = useAuthState(auth);
+  const [userProfile, setUserProfile] = useState({ name: "", course: "", branch: "" });
 
-  const handleLogout = () => {
+  useEffect(() => {
+    if (!user) return;
+    const loadProfile = async () => {
+      const profileDoc = await getDoc(doc(db, "users", user.uid, "profile", "data"));
+      if (profileDoc.exists()) {
+        const data = profileDoc.data();
+        setUserProfile({
+          name: user.displayName || "",
+          course: data.course || "",
+          branch: data.branch || ""
+        });
+      } else {
+        setUserProfile({ name: user.displayName || "", course: "", branch: "" });
+      }
+    };
+    loadProfile();
+  }, [user]);
+
+  const handleLogout = async () => {
+    await signOut(auth);
     navigate("/");
   };
 
@@ -76,11 +101,11 @@ const Layout = ({ children }: LayoutProps) => {
         <div className="px-4 py-4 border-t" style={{ borderColor: "hsl(var(--sidebar-border))" }}>
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-sm font-semibold">
-              AK
+              {userProfile.name ? userProfile.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) : 'U'}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium truncate" style={{ color: "hsl(var(--sidebar-fg))" }}>Arjun Kumar</p>
-              <p className="text-xs truncate" style={{ color: "hsl(var(--muted-foreground))" }}>B.Tech CSE</p>
+              <p className="text-sm font-medium truncate" style={{ color: "hsl(var(--sidebar-fg))" }}>{userProfile.name || 'User'}</p>
+              <p className="text-xs truncate" style={{ color: "hsl(var(--muted-foreground))" }}>{userProfile.course && userProfile.branch ? `${userProfile.course} ${userProfile.branch}` : 'Complete profile'}</p>
             </div>
             <button onClick={handleLogout} className="p-1.5 rounded-md transition-colors" style={{ color: "hsl(var(--muted-foreground))" }}>
               <LogOut className="w-4 h-4" />
@@ -140,11 +165,11 @@ const Layout = ({ children }: LayoutProps) => {
         <div className="absolute bottom-0 left-0 right-0 px-4 py-4 border-t" style={{ borderColor: "hsl(var(--sidebar-border))" }}>
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-sm font-semibold">
-              AK
+              {userProfile.name ? userProfile.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) : 'U'}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium truncate" style={{ color: "hsl(var(--sidebar-fg))" }}>Arjun Kumar</p>
-              <p className="text-xs truncate" style={{ color: "hsl(var(--muted-foreground))" }}>B.Tech CSE</p>
+              <p className="text-sm font-medium truncate" style={{ color: "hsl(var(--sidebar-fg))" }}>{userProfile.name || 'User'}</p>
+              <p className="text-xs truncate" style={{ color: "hsl(var(--muted-foreground))" }}>{userProfile.course && userProfile.branch ? `${userProfile.course} ${userProfile.branch}` : 'Complete profile'}</p>
             </div>
             <button onClick={handleLogout} className="p-1.5 rounded-md transition-colors" style={{ color: "hsl(var(--muted-foreground))" }}>
               <LogOut className="w-4 h-4" />

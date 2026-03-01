@@ -4,9 +4,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import loginHero from "@/assets/login-hero.jpg";
 import { signInWithPopup, signInWithEmailAndPassword } from "firebase/auth";
-import { auth, googleProvider } from "@/lib/firebase";
+import { auth, googleProvider, db } from "@/lib/firebase";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { doc, setDoc, getDoc } from "firebase/firestore";
 
 const LoginPage = () => {
   const navigate = useNavigate();
@@ -18,9 +19,14 @@ const LoginPage = () => {
   const handleGoogleSignIn = async () => {
     setLoading(true);
     try {
-      await signInWithPopup(auth, googleProvider);
+      const result = await signInWithPopup(auth, googleProvider);
+      const userDoc = await getDoc(doc(db, "users", result.user.uid, "profile", "data"));
+      if (!userDoc.exists() || !userDoc.data()?.onboardingCompleted) {
+        navigate("/onboarding");
+      } else {
+        navigate("/home");
+      }
       toast({ title: "Success", description: "Signed in with Google" });
-      navigate("/home");
     } catch (error: any) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     } finally {

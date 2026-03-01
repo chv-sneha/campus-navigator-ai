@@ -30,6 +30,8 @@ const ProfilePage = () => {
   const [profile, setProfile] = useState({
     name: "",
     email: "",
+    role: "",
+    course: "",
     college: "",
     branch: "",
     year: "",
@@ -50,10 +52,10 @@ const ProfilePage = () => {
     }));
 
     const loadProfile = async () => {
-      const profileDoc = await getDoc(doc(db, `users/${user.uid}/profile`));
+      const profileDoc = await getDoc(doc(db, "users", user.uid, "profile", "data"));
       if (profileDoc.exists()) {
         const data = profileDoc.data();
-        setProfile(prev => ({ ...prev, college: data.college || "", branch: data.branch || "", year: data.year || "" }));
+        setProfile(prev => ({ ...prev, role: data.role || "", course: data.course || "", college: data.college || "", branch: data.branch || "", year: data.year || "" }));
         setMorningBriefing(data.morningBriefing ?? true);
         setDeadlineReminder(data.deadlineReminder ?? true);
         setReminderDays([data.reminderDays ?? 3]);
@@ -62,7 +64,7 @@ const ProfilePage = () => {
       }
     };
 
-    const professorsQuery = query(collection(db, `users/${user.uid}/professors`), orderBy("createdAt", "asc"));
+    const professorsQuery = query(collection(db, "users", user.uid, "professors"), orderBy("createdAt", "asc"));
     const unsubProfessors = onSnapshot(professorsQuery, (snapshot) => {
       const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Professor));
       setProfessors(data);
@@ -77,7 +79,9 @@ const ProfilePage = () => {
 
   const saveProfile = async () => {
     if (!user) return;
-    await setDoc(doc(db, `users/${user.uid}/profile`), {
+    await setDoc(doc(db, "users", user.uid, "profile", "data"), {
+      role: profile.role,
+      course: profile.course,
       college: profile.college,
       branch: profile.branch,
       year: profile.year
@@ -88,7 +92,7 @@ const ProfilePage = () => {
 
   const savePreferences = async () => {
     if (!user) return;
-    await setDoc(doc(db, `users/${user.uid}/profile`), {
+    await setDoc(doc(db, "users", user.uid, "profile", "data"), {
       morningBriefing,
       deadlineReminder,
       reminderDays: reminderDays[0],
@@ -100,7 +104,7 @@ const ProfilePage = () => {
 
   const addProfessor = async () => {
     if (!user || !newProfName.trim()) return;
-    await addDoc(collection(db, `users/${user.uid}/professors`), {
+    await addDoc(collection(db, "users", user.uid, "professors"), {
       name: newProfName,
       citation: newProfCitation,
       createdAt: serverTimestamp()
@@ -112,7 +116,7 @@ const ProfilePage = () => {
 
   const deleteProfessor = async (id: string) => {
     if (!user) return;
-    await deleteDoc(doc(db, `users/${user.uid}/professors`, id));
+    await deleteDoc(doc(db, "users", user.uid, "professors", id));
     toast({ title: "Professor deleted" });
   };
 
@@ -138,6 +142,32 @@ const ProfilePage = () => {
             </div>
             {editing ? (
               <div className="space-y-3 text-left">
+                <Select value={profile.role} onValueChange={(value) => setProfile({ ...profile, role: value })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Role" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="student">Student</SelectItem>
+                    <SelectItem value="professor">Professor</SelectItem>
+                  </SelectContent>
+                </Select>
+                {profile.role === "student" && (
+                  <Select value={profile.course} onValueChange={(value) => setProfile({ ...profile, course: value })}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Course" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="B.Tech">B.Tech</SelectItem>
+                      <SelectItem value="B.Sc">B.Sc</SelectItem>
+                      <SelectItem value="M.Tech">M.Tech</SelectItem>
+                      <SelectItem value="M.Sc">M.Sc</SelectItem>
+                      <SelectItem value="BBA">BBA</SelectItem>
+                      <SelectItem value="MBA">MBA</SelectItem>
+                      <SelectItem value="BCA">BCA</SelectItem>
+                      <SelectItem value="MCA">MCA</SelectItem>
+                    </SelectContent>
+                  </Select>
+                )}
                 <Input placeholder="College" value={profile.college} onChange={e => setProfile({ ...profile, college: e.target.value })} />
                 <Input placeholder="Branch" value={profile.branch} onChange={e => setProfile({ ...profile, branch: e.target.value })} />
                 <Input placeholder="Year" value={profile.year} onChange={e => setProfile({ ...profile, year: e.target.value })} />
@@ -147,6 +177,8 @@ const ProfilePage = () => {
               <>
                 <h2 className="font-display text-lg font-bold text-foreground">{profile.name || 'User'}</h2>
                 <p className="text-sm text-muted-foreground mt-1">{profile.email}</p>
+                {profile.role && <p className="text-xs text-primary font-medium mt-2">{profile.role === 'student' ? 'Student' : 'Professor'}</p>}
+                {profile.course && <p className="text-xs text-muted-foreground">{profile.course}</p>}
                 {profile.college && <p className="text-sm text-muted-foreground">{profile.college}</p>}
                 {profile.branch && <p className="text-sm text-muted-foreground">{profile.branch}</p>}
                 {profile.year && <p className="text-xs text-muted-foreground mt-1">{profile.year}</p>}
