@@ -1,12 +1,13 @@
 import { useState } from "react";
 import Layout from "@/components/Layout";
-import { FileText, Download, Plus, X, Copy, CheckCircle } from "lucide-react";
+import { FileText, Download, Plus, X, Copy, CheckCircle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
+import { generateDOCX, generatePDF, generateFileName } from "@/lib/documentGenerator";
 
 interface Professor {
   id: number;
@@ -35,6 +36,7 @@ const DocumentGenerator = () => {
   const [draft, setDraft] = useState("");
   const [rubric, setRubric] = useState("Essay");
   const [feedbackGenerated, setFeedbackGenerated] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
   const { toast } = useToast();
 
   const handleGenerate = () => {
@@ -64,6 +66,64 @@ const DocumentGenerator = () => {
   };
 
   const prof = professors.find(p => p.name === selectedProf);
+
+  const handleDownload = async () => {
+    setIsDownloading(true);
+    try {
+      const content = {
+        title: topic,
+        professorName: selectedProf || undefined,
+        studentName: "Student",
+        citationStyle: prof?.citation || "APA",
+        sections: [
+          {
+            heading: "1. Introduction",
+            content: `This document presents a comprehensive analysis of ${topic.toLowerCase() || "the given topic"}. The study explores the fundamental concepts, methodologies, and practical applications relevant to the subject matter within the context of modern computer science education.`
+          },
+          {
+            heading: "2. Literature Review",
+            content: "According to recent research (Smith et al., 2025), the field has seen significant advancements in the past decade. Key contributions include **novel algorithms** for optimization and improved theoretical frameworks for analysis."
+          },
+          {
+            heading: "3. Methodology",
+            content: "The study employs a **mixed-methods approach** combining quantitative analysis with qualitative case studies. Data was collected from multiple sources and analyzed using standard statistical techniques."
+          },
+          {
+            heading: "4. Conclusion",
+            content: "The findings demonstrate significant potential for further research and development. Future work should focus on **scalability** and real-world implementation challenges."
+          }
+        ]
+      };
+
+      const fileName = generateFileName(topic, format);
+
+      if (format === "DOCX") {
+        const blob = await generateDOCX(content);
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      } else {
+        const pdf = generatePDF(content);
+        pdf.save(fileName);
+      }
+
+      toast({ title: "Document downloaded successfully! 📥" });
+    } catch (error) {
+      console.error("Download error:", error);
+      toast({ 
+        title: "Download failed", 
+        description: "Please try again",
+        variant: "destructive" 
+      });
+    } finally {
+      setIsDownloading(false);
+    }
+  };
 
   return (
     <Layout>
@@ -200,8 +260,16 @@ const DocumentGenerator = () => {
                     </div>
                   </div>
 
-                  <Button className="w-full h-11 mt-6 font-semibold bg-accent text-accent-foreground hover:bg-accent/90" onClick={() => toast({ title: `${format} downloaded! 📥` })}>
-                    <Download className="w-4 h-4 mr-2" /> Download as {format}
+                  <Button 
+                    className="w-full h-11 mt-6 font-semibold bg-accent text-accent-foreground hover:bg-accent/90" 
+                    onClick={handleDownload}
+                    disabled={isDownloading}
+                  >
+                    {isDownloading ? (
+                      <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Generating...</>
+                    ) : (
+                      <><Download className="w-4 h-4 mr-2" /> Download as {format}</>
+                    )}
                   </Button>
 
                   {/* Originality & Citations */}

@@ -101,7 +101,7 @@ const Dashboard = () => {
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="font-display text-2xl lg:text-3xl font-bold text-foreground">
-            Good Morning, {user?.displayName?.split(' ')[0] || 'Student'} 👋
+            Hello, {user?.displayName?.split(' ')[0] || 'Student'} 👋
           </h1>
           <p className="text-muted-foreground text-sm mt-1">Here's your mission for today</p>
         </div>
