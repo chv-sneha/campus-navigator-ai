@@ -64,10 +64,10 @@ const HomePage = () => {
   return (
     <Layout>
       {/* Hero Section */}
-      <section className="relative -m-4 lg:-m-8 mb-0 overflow-hidden rounded-none">
+      <section className="relative -m-4 lg:-m-8 mb-0 overflow-hidden rounded-none min-h-[600px] lg:min-h-[700px]">
         {/* Background Image */}
         <div className="absolute inset-0 z-0">
-          <img src={heroBanner} alt="" className="w-full h-full object-cover" />
+          <img src={heroBanner} alt="" className="w-full h-full object-cover object-center" style={{ minHeight: '100%', minWidth: '100%' }} />
           <div className="absolute inset-0" style={{ background: "linear-gradient(135deg, hsl(220, 40%, 8%, 0.88), hsl(230, 50%, 15%, 0.75))" }} />
         </div>
 
