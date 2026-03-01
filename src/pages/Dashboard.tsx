@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Layout from "@/components/Layout";
 import {
   BookOpen,
@@ -11,19 +11,60 @@ import {
   Calendar,
   CheckCircle2,
   ArrowRight,
+  Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { useNavigate } from "react-router-dom";
+import { useAuthState } from "react-firebase-hooks/auth";
+import { auth, db } from "@/lib/firebase";
+import { collection, query, onSnapshot, orderBy } from "firebase/firestore";
 
 const Dashboard = () => {
   const navigate = useNavigate();
+  const [user, loading] = useAuthState(auth);
+  const [deadlines, setDeadlines] = useState<any[]>([]);
+  const [goals, setGoals] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (!user) return;
+
+    const deadlinesQuery = query(collection(db, `users/${user.uid}/deadlines`), orderBy("createdAt", "asc"));
+    const goalsQuery = query(collection(db, `users/${user.uid}/goals`), orderBy("createdAt", "asc"));
+
+    const unsubDeadlines = onSnapshot(deadlinesQuery, (snapshot) => {
+      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setDeadlines(data);
+    });
+
+    const unsubGoals = onSnapshot(goalsQuery, (snapshot) => {
+      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setGoals(data);
+    });
+
+    return () => {
+      unsubDeadlines();
+      unsubGoals();
+    };
+  }, [user]);
+
+  const urgentDeadline = deadlines.length > 0 ? deadlines.reduce((min, d) => {
+    const daysLeft = Math.max(0, Math.ceil((new Date(d.date).getTime() - Date.now()) / 86400000));
+    const minDaysLeft = Math.max(0, Math.ceil((new Date(min.date).getTime() - Date.now()) / 86400000));
+    return daysLeft < minDaysLeft ? d : min;
+  }) : null;
+
+  const urgentDaysLeft = urgentDeadline ? Math.max(0, Math.ceil((new Date(urgentDeadline.date).getTime() - Date.now()) / 86400000)) : 0;
+
+  const completedGoals = goals.filter(g => g.done).length;
+  const totalGoals = goals.length;
+  const completedPercent = totalGoals > 0 ? Math.round((completedGoals / totalGoals) * 100) : 0;
 
   const stats = [
     { label: "Today's Classes", value: "4", sub: "Next: Data Structures at 10 AM", icon: BookOpen, color: "primary" },
-    { label: "Upcoming Deadlines", value: "3", sub: "OS Assignment — Due Tomorrow", icon: Clock, color: "destructive" },
+    { label: "Upcoming Deadlines", value: deadlines.length.toString(), sub: urgentDeadline ? `${urgentDeadline.subject} — Due in ${urgentDaysLeft}d` : "No deadlines", icon: Clock, color: "destructive" },
     { label: "Confidence Score", value: "72%", sub: "↑ 5% from last week", icon: TrendingUp, color: "success" },
-    { label: "Goals Today", value: "2/5", sub: "40% completed", icon: Target, color: "warning" },
+    { label: "Goals Today", value: `${completedGoals}/${totalGoals}`, sub: `${completedPercent}% completed`, icon: Target, color: "warning" },
   ];
 
   const quickActions = [
@@ -50,11 +91,17 @@ const Dashboard = () => {
 
   return (
     <Layout>
+      {loading ? (
+        <div className="flex items-center justify-center h-64">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        </div>
+      ) : (
+        <>
       {/* Top Bar */}
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="font-display text-2xl lg:text-3xl font-bold text-foreground">
-            Good Morning, Arjun 👋
+            Good Morning, {user?.displayName?.split(' ')[0] || 'Student'} 👋
           </h1>
           <p className="text-muted-foreground text-sm mt-1">Here's your mission for today</p>
         </div>
@@ -74,7 +121,7 @@ const Dashboard = () => {
             </div>
             <p className="font-display text-2xl font-bold text-foreground">{s.value}</p>
             <p className="text-xs text-muted-foreground mt-1">{s.sub}</p>
-            {s.label === "Goals Today" && <Progress value={40} className="mt-3 h-1.5" />}
+            {s.label === "Goals Today" && <Progress value={completedPercent} className="mt-3 h-1.5" />}
           </div>
         ))}
       </div>
@@ -88,9 +135,11 @@ const Dashboard = () => {
             <h2 className="font-display text-lg font-bold">Morning Briefing</h2>
           </div>
           <p className="text-sm leading-relaxed mb-4">
-            You have 4 classes today starting with Data Structures at 10 AM. Your OS assignment is due tomorrow — 
-            you've completed 60% of it. Consider finishing the remaining sections during the free period at 2 PM.
-            Your confidence in Binary Trees improved by 12% after yesterday's reel session! 🎯
+            You have 4 classes today starting with Data Structures at 10 AM.
+            {urgentDeadline && ` Your ${urgentDeadline.subject} is due in ${urgentDaysLeft} day${urgentDaysLeft !== 1 ? 's' : ''}.`}
+            {goals.filter(g => !g.done).length > 0 && ` You have ${goals.filter(g => !g.done).length} active goal${goals.filter(g => !g.done).length !== 1 ? 's' : ''} to complete today.`}
+            {!urgentDeadline && !goals.length && " You're all caught up! Consider adding some goals or checking upcoming deadlines."}
+            {" Keep up the great work! 🎯"}
           </p>
           <div>
             <h3 className="font-semibold text-sm mb-2">📋 What to carry today</h3>
@@ -140,6 +189,8 @@ const Dashboard = () => {
           ))}
         </div>
       </div>
+        </>
+      )}
     </Layout>
   );
 };
