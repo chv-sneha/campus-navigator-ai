@@ -1,7 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import Anthropic from '@anthropic-ai/sdk';
+import OpenAI from 'openai';
 
 dotenv.config();
 
@@ -15,42 +15,44 @@ app.use(express.json({ limit: '50mb' }));
 app.post('/api/parse-timetable', async (req, res) => {
   try {
     const { imageBase64, mediaType } = req.body;
+    console.log('Received request with mediaType:', mediaType);
 
-    const anthropic = new Anthropic({
-      apiKey: process.env.ANTHROPIC_API_KEY
+    if (!process.env.OPENAI_API_KEY) {
+      throw new Error('OPENAI_API_KEY not configured');
+    }
+
+    const openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY
     });
 
-    const message = await anthropic.messages.create({
-      model: 'claude-opus-4-5',
+    const response = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
       max_tokens: 2000,
-      system: 'You are a timetable parser. Extract the timetable from this image and return ONLY a valid JSON array of arrays (6 rows for Monday-Saturday, 8 columns for time slots 9AM-4PM). Use empty string "" for empty cells. Use short subject names. Return only the raw JSON array, no markdown, no backticks, no explanation.',
       messages: [
         {
           role: 'user',
           content: [
             {
-              type: 'image',
-              source: {
-                type: 'base64',
-                media_type: mediaType,
-                data: imageBase64
+              type: 'image_url',
+              image_url: {
+                url: `data:${mediaType};base64,${imageBase64}`
               }
             },
             {
               type: 'text',
-              text: 'Parse this timetable. Return ONLY the JSON array [[...],[...]] with no other text.'
+              text: 'Extract the timetable from this image and return ONLY a valid JSON array of arrays. Format: [["subject1","subject2",...],[...]] with 6 rows (Mon-Sat) and 8 columns (9AM-4PM). Use "" for empty cells and "Lunch" for lunch breaks. Return ONLY the JSON array, no markdown, no explanation.'
             }
           ]
         }
       ]
     });
 
-    const responseText = message.content[0].text;
-    console.log("Claude raw response:", responseText);
+    const responseText = response.choices[0].message.content;
+    console.log("OpenAI response:", responseText);
     res.json({ content: responseText });
 
   } catch (error) {
-    console.error("Error:", error.message);
+    console.error("Full error:", error);
     res.status(500).json({ error: error.message });
   }
 });
